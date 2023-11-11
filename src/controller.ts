@@ -1,34 +1,74 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import {
-	IChampionPriceList,
-	ISkinPrice,
 	getChampion,
-	getChampions,
+	getTranslChampions,
 	getPrices,
-	getSkins,
+	getTranslSkins,
 } from './api';
-import { processSkins } from './helper';
+import { processChampion, processSkins } from './helper';
+
+type championList = ({
+	id: number;
+	name: string;
+	tilePath: string;
+} & (responseChampion | responseSkin))[];
+
+type responseChampion = {
+	key: string;
+	title: string;
+	cost: {
+		rp: number;
+		blueEssence: number;
+	};
+};
+
+type responseSkin = {
+	loadScreenPath: string;
+	cost: {
+		rp: number;
+	};
+};
 
 export async function championList(req: FastifyRequest, res: FastifyReply) {
-	let procData: (IChampionPriceList | ISkinPrice[])[] = [];
-	await Promise.all([getPrices(), getChampions(), getSkins()])
+	const responseData: championList = [];
+	await Promise.all([getPrices(), getTranslChampions(), getTranslSkins()])
 		.then((response) => {
-			Object.values(response[0]).forEach((item) => {
+			const [prices, translChampions, translSkins] = response;
+			Object.values(prices).forEach((item) => {
 				if (item.key === 'Briar') return;
-				if (response[1].data[item.key]) {
-					item.title = response[1].data[item.key].title;
-				}
-				item.skins = processSkins(item.skins, response[2]);
-				procData.push(item);
-				procData.push(item.skins);
+				responseData.push(processChampion(item, translChampions.data));
+				responseData.push(...processSkins(item.skins, translSkins));
 			});
 		})
-		.catch((error) => {});
-	res.send(procData);
+		.catch((error) => {
+			res.code(500).send(error);
+		});
+	res.send(responseData);
 }
 
-export async function champion(req: FastifyRequest, res: FastifyReply) {
-	Promise.all([getPrices(), getChampion(10)])
-		.then((response) => {})
-		.catch((error) => {});
+export async function champion(
+	req: FastifyRequest<{
+		Params: {
+			id: string;
+		};
+	}>,
+	res: FastifyReply
+) {
+	try {
+		const prices = await getPrices();
+		const paramId = req.params.id.toLowerCase();
+		const championKey = Object.keys(prices).find(
+			(champion) => champion.toLocaleLowerCase() === paramId
+		);
+		if (championKey) {
+			const champion = await getChampion(prices[championKey].id);
+			res.send(champion);
+		} else {
+			res.code(404).send({
+				message: 'Champion not found',
+			});
+		}
+	} catch (error) {
+		res.code(500).send(error);
+	}
 }

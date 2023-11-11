@@ -1,10 +1,34 @@
-import { IRequestSkins, ISkinPrice } from './api';
+import {
+	IChampionPrice,
+	IReqTranslChampions,
+	IReqTranslSkins,
+	ISkinPrice,
+} from './api';
+
+export function processChampion(
+	champion: IChampionPrice,
+	translChampions: IReqTranslChampions['data']
+) {
+	return {
+		id: champion.id,
+		key: champion.key,
+		name: champion.name,
+		tilePath: champion.icon,
+		title: translChampions[champion.key]
+			? translChampions[champion.key].title
+			: champion.title,
+		cost: {
+			rp: champion.price.rp,
+			blueEssence: champion.price.blueEssence,
+		},
+	};
+}
 
 export function processSkins(
 	skins: ISkinPrice[],
-	translatedSkins: IRequestSkins
+	translSkins: IReqTranslSkins
 ) {
-	return skins.filter((skin) => {
+	const availableSkins = skins.filter((skin) => {
 		if (
 			skin.name === 'Original' ||
 			skin.cost === 'Special' ||
@@ -12,11 +36,27 @@ export function processSkins(
 		) {
 			return false;
 		}
-		if (translatedSkins[skin.id]) {
-			skin.name = translatedSkins[skin.id].name;
-			skin.tilePath = mapImagePath(translatedSkins[skin.id].tilePath);
-		}
 		return true;
+	});
+	return availableSkins.map((skin) => {
+		const data = translSkins[skin.id]
+			? {
+					name: translSkins[skin.id].name,
+					tilePath: mapImagePath(translSkins[skin.id].tilePath),
+					loadScreenPath: mapImagePath(translSkins[skin.id].loadScreenPath),
+			  }
+			: {
+					name: skin.name,
+					tilePath: skin.tilePath,
+					loadScreenPath: skin.loadScreenPath,
+			  };
+		return {
+			id: skin.id,
+			cost: {
+				rp: skin.cost as number,
+			},
+			...data,
+		};
 	});
 }
 

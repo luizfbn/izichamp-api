@@ -1,12 +1,12 @@
 import axios from 'axios';
 
-type IRequestChampions = { [key: string]: IChampionPriceList };
-type IRequestChampion = { data: { [key: string]: IChampion } };
-export type IRequestSkins = { [key: string]: ISkinPortuguese };
+type IReqChampionsPrices = { [key: string]: IChampionPrice };
+export type IReqTranslChampions = { data: { [key: string]: ITranslChampion } };
+export type IReqTranslSkins = { [key: string]: ITranslSkin };
 
 export async function getPrices() {
 	try {
-		const { data }: { data: IRequestChampions } = await axios(
+		const { data }: { data: IReqChampionsPrices } = await axios(
 			'https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json'
 		);
 		return data;
@@ -15,9 +15,9 @@ export async function getPrices() {
 	}
 }
 
-export async function getChampions() {
+export async function getTranslChampions() {
 	try {
-		const { data }: { data: IRequestChampion } = await axios(
+		const { data }: { data: IReqTranslChampions } = await axios(
 			'https://ddragon.leagueoflegends.com/cdn/13.22.1/data/pt_BR/champion.json'
 		);
 		return data;
@@ -26,9 +26,9 @@ export async function getChampions() {
 	}
 }
 
-export async function getSkins() {
+export async function getTranslSkins() {
 	try {
-		const { data }: { data: IRequestSkins } = await axios(
+		const { data }: { data: IReqTranslSkins } = await axios(
 			'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/pt_br/v1/skins.json'
 		);
 		return data;
@@ -39,12 +39,12 @@ export async function getSkins() {
 
 export async function getChampion(id: number) {
 	try {
-		const { data }: { data: IChampionPortuguese } = await axios(
+		const { data }: { data: IChampion } = await axios(
 			`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/pt_br/v1/champions/${id}.json`
 		);
 		return data;
 	} catch (error) {
-		console.log(error);
+		throw error;
 	}
 }
 
@@ -61,23 +61,17 @@ export async function getVersion() {
 
 export const CHAMPIONS_WITH_PRICES_URL =
 	'https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json';
-export type IChampionPriceList = Omit<IChampionPrice, 'skins'> & {
+export type IChampionPrice = {
+	id: number;
 	key: string;
 	name: string;
 	title: string;
 	icon: string;
 	skins: ISkinPrice[];
-};
-
-export const CHAMPION_WITH_PRICES_URL =
-	'https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions';
-export type IChampionPrice = {
-	id: number;
 	price: {
 		blueEssence: number;
 		rp: number;
 	};
-	skins: ISkinPrice[];
 };
 
 export type ISkinPrice = {
@@ -91,7 +85,7 @@ export type ISkinPrice = {
 
 export const CHAMPION_PT_BR_URL =
 	'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/pt_br/v1/champions';
-export type IChampionPortuguese = {
+export type IChampion = {
 	id: number;
 	name: string;
 	alias: string;
@@ -109,16 +103,16 @@ export type IChampionPortuguese = {
 		abilityIconPath: string;
 		description: string;
 	}[];
-	skins: ISkinPortuguese[];
+	skins: ITranslSkin[];
 };
 
 export const SKINS_PT_BR_URL =
 	'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/pt_br/v1/skins.json';
-export type ISkinPortuguese = Omit<ISkinPrice, 'availability' | 'cost'>;
+export type ITranslSkin = Omit<ISkinPrice, 'availability' | 'cost'>;
 
 export const CHAMPIONS_URL =
 	'https://ddragon.leagueoflegends.com/cdn/{version}/data/pt_BR/champion.json';
-export type IChampion = {
+export type ITranslChampion = {
 	id: string;
 	key: string;
 	name: string;
