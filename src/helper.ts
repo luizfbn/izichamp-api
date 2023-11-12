@@ -1,33 +1,44 @@
-import {
-	IChampionPrice,
-	IReqTranslChampions,
-	IReqTranslSkins,
-	ISkinPrice,
-} from './api';
+import { IChampion, IReqTranslSkins, ISkinPrice } from './api';
 
-export function processChampion(
-	champion: IChampionPrice,
-	translChampions: IReqTranslChampions['data']
-) {
-	return {
-		id: champion.id,
-		key: champion.key,
-		name: champion.name,
-		tilePath: champion.icon,
-		title: translChampions[champion.key]
-			? translChampions[champion.key].title
-			: champion.title,
-		cost: {
-			rp: champion.price.rp,
-			blueEssence: champion.price.blueEssence,
-		},
-	};
+export function mapImagePath(path: string) {
+	const newPath = path.toLocaleLowerCase().split('/lol-game-data/assets/')[1];
+	return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/${newPath}`;
 }
 
-export function processSkins(
-	skins: ISkinPrice[],
-	translSkins: IReqTranslSkins
-) {
+export function removeTagsFromText(text: string) {
+	return text.replace(/<\/?[\w\s]*>|<.+[\W]>/g, ' ');
+}
+
+export function getOrangeEssenceValue(rp: number) {
+	switch (rp) {
+		case 520:
+			return 220;
+		case 750:
+			return 450;
+		case 975:
+			return 675;
+		case 1350:
+			return 1050;
+		case 1820:
+			return 1520;
+		default:
+			return rp;
+	}
+}
+
+type IProcessSkins =
+	| {
+			skins: ISkinPrice[];
+			translSkins: IReqTranslSkins;
+			type: 'object';
+	  }
+	| {
+			skins: ISkinPrice[];
+			translSkins: IChampion['skins'];
+			type: 'array';
+	  };
+
+export function processSkins({ skins, translSkins, type }: IProcessSkins) {
 	const availableSkins = skins.filter((skin) => {
 		if (
 			skin.name === 'Original' ||
@@ -39,11 +50,15 @@ export function processSkins(
 		return true;
 	});
 	return availableSkins.map((skin) => {
-		const data = translSkins[skin.id]
+		const translSkin =
+			type === 'object'
+				? translSkins[skin.id]
+				: translSkins.find((elem) => elem.id === skin.id);
+		const data = translSkin
 			? {
-					name: translSkins[skin.id].name,
-					tilePath: mapImagePath(translSkins[skin.id].tilePath),
-					loadScreenPath: mapImagePath(translSkins[skin.id].loadScreenPath),
+					name: translSkin.name,
+					tilePath: mapImagePath(translSkin.tilePath),
+					loadScreenPath: mapImagePath(translSkin.loadScreenPath),
 			  }
 			: {
 					name: skin.name,
@@ -52,15 +67,11 @@ export function processSkins(
 			  };
 		return {
 			id: skin.id,
+			...data,
 			cost: {
 				rp: skin.cost as number,
+				orangeEssence: getOrangeEssenceValue(skin.cost as number),
 			},
-			...data,
 		};
 	});
-}
-
-function mapImagePath(path: string) {
-	const newPath = path.toLocaleLowerCase().split('/lol-game-data/assets/')[1];
-	return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/${newPath}`;
 }

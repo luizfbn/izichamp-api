@@ -1,11 +1,12 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import {
-	getChampion,
 	getTranslChampions,
 	getPrices,
 	getTranslSkins,
-} from './api';
-import { processChampion, processSkins } from './helper';
+	IChampionPrice,
+	IReqTranslChampions,
+} from '../api';
+import { processSkins } from '../helper';
 
 type championList = ({
 	id: number;
@@ -26,6 +27,7 @@ type responseSkin = {
 	loadScreenPath: string;
 	cost: {
 		rp: number;
+		orangeEssence: number;
 	};
 };
 
@@ -37,7 +39,13 @@ export async function championList(req: FastifyRequest, res: FastifyReply) {
 			Object.values(prices).forEach((item) => {
 				if (item.key === 'Briar') return;
 				responseData.push(processChampion(item, translChampions.data));
-				responseData.push(...processSkins(item.skins, translSkins));
+				responseData.push(
+					...processSkins({
+						skins: item.skins,
+						translSkins,
+						type: 'object',
+					})
+				);
 			});
 		})
 		.catch((error) => {
@@ -46,29 +54,21 @@ export async function championList(req: FastifyRequest, res: FastifyReply) {
 	res.send(responseData);
 }
 
-export async function champion(
-	req: FastifyRequest<{
-		Params: {
-			id: string;
-		};
-	}>,
-	res: FastifyReply
+function processChampion(
+	champion: IChampionPrice,
+	translChampions: IReqTranslChampions['data']
 ) {
-	try {
-		const prices = await getPrices();
-		const paramId = req.params.id.toLowerCase();
-		const championKey = Object.keys(prices).find(
-			(champion) => champion.toLocaleLowerCase() === paramId
-		);
-		if (championKey) {
-			const champion = await getChampion(prices[championKey].id);
-			res.send(champion);
-		} else {
-			res.code(404).send({
-				message: 'Champion not found',
-			});
-		}
-	} catch (error) {
-		res.code(500).send(error);
-	}
+	return {
+		id: champion.id,
+		key: champion.key,
+		name: champion.name,
+		tilePath: champion.icon,
+		title: translChampions[champion.key]
+			? translChampions[champion.key].title
+			: champion.title,
+		cost: {
+			rp: champion.price.rp,
+			blueEssence: champion.price.blueEssence,
+		},
+	};
 }

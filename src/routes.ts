@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { champion, championList } from './controller';
+import { championList } from './controllers/championListController';
+import { champion } from './controllers/championController';
 
 export async function routes(app: FastifyInstance) {
 	app.get('/champions', championList);
