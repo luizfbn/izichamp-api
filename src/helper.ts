@@ -70,6 +70,7 @@ export function processSkins({
 					loadScreenPath: skin.loadScreenPath,
 			  };
 		return {
+			type: 'Skin',
 			id: skin.id,
 			...data,
 			cost: {

@@ -68,9 +68,10 @@ function processChampion(
 	translChampions?: ITranslChampion
 ) {
 	return {
+		type: 'Champion',
 		id: champion.id,
 		key: champion.key,
-		name: champion.name,
+		name: translChampions ? translChampions.name : champion.name,
 		tilePath: champion.icon,
 		title: translChampions ? translChampions.title : champion.title,
 		cost: {

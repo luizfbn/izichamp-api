@@ -18,7 +18,7 @@ export async function getChampions(req: FastifyRequest, res: FastifyReply) {
 		const responseData = await getData<IReqTranslChampions>(
 			await ApiUrls.TranslChampions
 		);
-		res.send(responseData.data);
+		res.send(Object.values(responseData.data));
 	} catch (error) {
 		res.code(500).send(error);
 	}
