@@ -1,20 +1,21 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { getData, processSkins } from '../helper';
+import { ApiUrls } from '../api/config';
 import {
-	getTranslChampions,
-	getPrices,
-	getTranslSkins,
-	IChampionPrice,
+	IReqChampionsPrices,
 	IReqTranslChampions,
-} from '../api';
-import { processSkins } from '../helper';
+	IReqTranslSkins,
+	ITranslChampion,
+	IChampionPrice,
+} from '../api/types';
 
-type championList = ({
+type getChampionsAndSkinsResponse = ({
 	id: number;
 	name: string;
 	tilePath: string;
-} & (responseChampion | responseSkin))[];
+} & (championResponse | skinResponse))[];
 
-type responseChampion = {
+type championResponse = {
 	key: string;
 	title: string;
 	cost: {
@@ -23,7 +24,7 @@ type responseChampion = {
 	};
 };
 
-type responseSkin = {
+type skinResponse = {
 	loadScreenPath: string;
 	cost: {
 		rp: number;
@@ -31,14 +32,22 @@ type responseSkin = {
 	};
 };
 
-export async function championList(req: FastifyRequest, res: FastifyReply) {
-	const responseData: championList = [];
-	await Promise.all([getPrices(), getTranslChampions(), getTranslSkins()])
+export async function getChampionsAndSkins(
+	req: FastifyRequest,
+	res: FastifyReply
+) {
+	const responseData: getChampionsAndSkinsResponse = [];
+	await Promise.all([
+		getData<IReqChampionsPrices>(ApiUrls.Prices),
+		getData<IReqTranslChampions>(await ApiUrls.TranslChampions),
+		getData<IReqTranslSkins>(ApiUrls.TranslSkins),
+	])
 		.then((response) => {
 			const [prices, translChampions, translSkins] = response;
 			Object.values(prices).forEach((item) => {
-				if (item.key === 'Briar') return;
-				responseData.push(processChampion(item, translChampions.data));
+				// if (item.key === 'Briar') return;
+				const translChampion = translChampions.data[item.key];
+				responseData.push(processChampion(item, translChampion));
 				responseData.push(
 					...processSkins({
 						skins: item.skins,
@@ -56,16 +65,14 @@ export async function championList(req: FastifyRequest, res: FastifyReply) {
 
 function processChampion(
 	champion: IChampionPrice,
-	translChampions: IReqTranslChampions['data']
+	translChampions?: ITranslChampion
 ) {
 	return {
 		id: champion.id,
 		key: champion.key,
 		name: champion.name,
 		tilePath: champion.icon,
-		title: translChampions[champion.key]
-			? translChampions[champion.key].title
-			: champion.title,
+		title: translChampions ? translChampions.title : champion.title,
 		cost: {
 			rp: champion.price.rp,
 			blueEssence: champion.price.blueEssence,

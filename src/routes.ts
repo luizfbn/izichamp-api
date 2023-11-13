@@ -1,8 +1,12 @@
 import { FastifyInstance } from 'fastify';
-import { championList } from './controllers/championListController';
-import { champion } from './controllers/championController';
+import { getChampionsAndSkins } from './controllers/championsAndSkinsController';
+import {
+	getChampions,
+	getChampionById,
+} from './controllers/championController';
 
 export async function routes(app: FastifyInstance) {
-	app.get('/champions', championList);
-	app.get('/champion/:id', champion);
+	app.get('/', getChampionsAndSkins);
+	app.get('/champions', getChampions);
+	app.get('/champions/:id', getChampionById);
 }

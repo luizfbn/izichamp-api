@@ -1,4 +1,14 @@
-import { IChampion, IReqTranslSkins, ISkinPrice } from './api';
+import axios from 'axios';
+import { IReqTranslSkins, ITranslSkin, ISkinPrice } from './api/types';
+
+export async function getData<T>(url: string) {
+	try {
+		const { data }: { data: T } = await axios(url);
+		return data;
+	} catch (error) {
+		throw error;
+	}
+}
 
 export function mapImagePath(path: string) {
 	const newPath = path.toLocaleLowerCase().split('/lol-game-data/assets/')[1];
@@ -26,7 +36,7 @@ export function getOrangeEssenceValue(rp: number) {
 	}
 }
 
-type IProcessSkins =
+type IProcessSkinsParams =
 	| {
 			skins: ISkinPrice[];
 			translSkins: IReqTranslSkins;
@@ -34,22 +44,16 @@ type IProcessSkins =
 	  }
 	| {
 			skins: ISkinPrice[];
-			translSkins: IChampion['skins'];
+			translSkins: ITranslSkin[];
 			type: 'array';
 	  };
 
-export function processSkins({ skins, translSkins, type }: IProcessSkins) {
-	const availableSkins = skins.filter((skin) => {
-		if (
-			skin.name === 'Original' ||
-			skin.cost === 'Special' ||
-			skin.availability === 'Upcoming'
-		) {
-			return false;
-		}
-		return true;
-	});
-	return availableSkins.map((skin) => {
+export function processSkins({
+	skins,
+	translSkins,
+	type,
+}: IProcessSkinsParams) {
+	return availableSkins(skins).map((skin) => {
 		const translSkin =
 			type === 'object'
 				? translSkins[skin.id]
@@ -73,5 +77,18 @@ export function processSkins({ skins, translSkins, type }: IProcessSkins) {
 				orangeEssence: getOrangeEssenceValue(skin.cost as number),
 			},
 		};
+	});
+}
+
+function availableSkins(skins: ISkinPrice[]) {
+	return skins.filter((skin) => {
+		if (
+			skin.name === 'Original' ||
+			skin.cost === 'Special' ||
+			skin.availability === 'Upcoming'
+		) {
+			return false;
+		}
+		return true;
 	});
 }

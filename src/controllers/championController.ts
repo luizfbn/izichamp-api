@@ -1,8 +1,30 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getPrices, getChampion, IChampion, IChampionPrice } from '../api';
-import { mapImagePath, processSkins, removeTagsFromText } from '../helper';
+import {
+	getData,
+	mapImagePath,
+	processSkins,
+	removeTagsFromText,
+} from '../helper';
+import { ApiUrls } from '../api/config';
+import {
+	IReqChampionsPrices,
+	IReqTranslChampions,
+	IChampionPrice,
+	ITranslChampionById,
+} from '../api/types';
 
-export async function champion(
+export async function getChampions(req: FastifyRequest, res: FastifyReply) {
+	try {
+		const responseData = await getData<IReqTranslChampions>(
+			await ApiUrls.TranslChampions
+		);
+		res.send(responseData.data);
+	} catch (error) {
+		res.code(500).send(error);
+	}
+}
+
+export async function getChampionById(
 	req: FastifyRequest<{
 		Params: {
 			id: string;
@@ -11,13 +33,14 @@ export async function champion(
 	res: FastifyReply
 ) {
 	try {
-		const pricesReq = await getPrices();
+		const pricesReq = await getData<IReqChampionsPrices>(ApiUrls.Prices);
 		const paramId = req.params.id.toLowerCase();
 		const championKey = Object.keys(pricesReq).find(
 			(champion) => champion.toLocaleLowerCase() === paramId
 		);
 		if (championKey) {
-			const championReq = await getChampion(pricesReq[championKey].id);
+			const translChampionUrl = `${ApiUrls.TranslChampionById}/${pricesReq[championKey].id}.json`;
+			const championReq = await getData<ITranslChampionById>(translChampionUrl);
 			const champion = processChampion(pricesReq[championKey], championReq);
 			const skins = processSkins({
 				skins: pricesReq[championKey].skins,
@@ -39,7 +62,10 @@ export async function champion(
 	}
 }
 
-function processChampion(champion: IChampionPrice, translChampion: IChampion) {
+function processChampion(
+	champion: IChampionPrice,
+	translChampion: ITranslChampionById
+) {
 	return {
 		id: translChampion.id,
 		name: translChampion.name,
